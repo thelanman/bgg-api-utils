@@ -1,5 +1,19 @@
+import time
+import random
+
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import ParseError as ETParseError
+
+
+class Throttle(object):
+    def __init__(self, sleep):
+        self.sleep = sleep
+
+    def __call__(self, f):
+        def do_throttle(*args, **kwargs):
+            time.sleep(random.randint(*self.sleep))
+            return f(*args, **kwargs)
+        return do_throttle
 
 
 def load_xml_from_file(fn):
@@ -44,12 +58,15 @@ def get_xml_subelement(xml_elem, subelement, attribute=None, multi=False, conver
     for el in subel:
         text = None
         if attribute is not None:
-            text = subel.attrib.get(attribute)
+            if type(attribute) is list:
+                text = []
+                for a in attribute:
+                    text += [el.attrib.get(a)]
+            else:
+                text = el.attrib.get(attribute, default)
         else:
-            text = subel.text
-        if text is None:
-            text = default
-        elif convert:
+            text = el.text if el.text is not None else default
+        if convert:
             try:
                 text = convert(text)
             except:
